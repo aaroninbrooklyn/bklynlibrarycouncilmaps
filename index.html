@@ -46,6 +46,8 @@
                 <strong>Branch:</strong> ${props["branch"] || "N/A"}<br/>
                 <strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}<br/>
                 <strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}<br/>
+                <strong>District Office Address:</strong> ${props["District Office Address"] || "N/A"}<br/>
+                <strong>District Office Phone:</strong> ${props["District Office Phone"] || "N/A"}<br/>
             `;
 
             popup.setLngLat(e.lngLat).setHTML(popupHtml).addTo(map);
