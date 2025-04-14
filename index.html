@@ -46,7 +46,6 @@
                 <strong>Branch:</strong> ${props["branch"] || "N/A"}<br/>
                 <strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}<br/>
                 <strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}<br/>
-                <img class="popup-img" src="${props["CMPhoto"] || ""}" alt="CM Photo" />
             `;
 
             popup.setLngLat(e.lngLat).setHTML(popupHtml).addTo(map);
