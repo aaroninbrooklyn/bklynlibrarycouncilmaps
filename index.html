@@ -32,16 +32,21 @@
         zoom: 11.7
     });
 
+    const popup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+    });
+
     map.on('load', () => {
         map.on('mousemove', 'bklynlibrary-branches-0qfsv6', (e) => {
             const feature = e.features[0];
             const props = feature.properties;
 
             const popupHtml = `
-                <strong>Branch:</strong> ${props.Branch}<br/>
-                <strong>Council District:</strong> ${props.CouncilDistrict}<br/>
-                <strong>Council Member:</strong> ${props.CouncilMember}<br/>
-                <img class="popup-img" src="${props.CMPhoto}" alt="CM Photo" />
+                <strong>Branch:</strong> ${props["branch"] || "N/A"}<br/>
+                <strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}<br/>
+                <strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}<br/>
+                <img class="popup-img" src="${props["CMPhoto"] || ""}" alt="CM Photo" />
             `;
 
             popup.setLngLat(e.lngLat).setHTML(popupHtml).addTo(map);
@@ -50,11 +55,6 @@
         map.on('mouseleave', 'bklynlibrary-branches-0qfsv6', () => {
             popup.remove();
         });
-    });
-
-    const popup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
     });
 </script>
 </body>
