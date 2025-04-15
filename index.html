@@ -49,6 +49,7 @@
             width: auto !important; /* Adjust width of the geocoder input */
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            visibility: visible !important; /* Ensure the geocoder container is visible */
         }
         .mapboxgl-ctrl-geocoder input[type="text"] {
             padding: 10px;
@@ -122,6 +123,12 @@
         });
 
         document.getElementById('search-container').appendChild(geocoder.onAdd(map));
+
+        // Force the geocoder control to be visible
+        const geocoderContainer = document.querySelector('.mapboxgl-ctrl-geocoder');
+        if (geocoderContainer) {
+            geocoderContainer.style.visibility = 'visible';
+        }
 
         geocoder.on('result', ({ result }) => {
             map.flyTo({
