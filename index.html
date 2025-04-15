@@ -6,6 +6,8 @@
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.1/mapbox-gl-geocoder.min.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.1/mapbox-gl-geocoder.css" type="text/css" />
     <style>
         body { margin: 0; padding: 0; }
         #map { position: absolute; top: 0; bottom: 0; left: 320px; right: 0; } /* Adjust left margin for instructions */
@@ -23,8 +25,8 @@
             box-sizing: border-box;
         }
         #instruction-image {
-            max-width: 100%;
-            height: auto;
+            width: 100%; /* Make it take up the full width */
+            height: auto; /* Maintain aspect ratio */
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
         }
@@ -33,28 +35,6 @@
             top: 10px;
             right: 10px;
             z-index: 1000; /* Ensure it's above the map */
-        }
-        #address-input {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        #search-button {
-            display: none; /* Hide the button */
-        }
-        #search-results {
-            position: absolute;
-            top: 50px; /* Adjust as needed */
-            right: 10px;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            font-size: 14px;
-            z-index: 1001;
-            display: none;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
         }
         .mapboxgl-popup-content {
             font-family: Arial, sans-serif;
@@ -65,6 +45,29 @@
             margin-top: 5px;
             border-radius: 4px;
         }
+        .mapboxgl-ctrl-geocoder {
+            width: auto !important; /* Adjust width of the geocoder input */
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .mapboxgl-ctrl-geocoder input[type="text"] {
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid transparent; /* Remove default border */
+        }
+        #search-results {
+            position: absolute;
+            top: 60px; /* Adjust position relative to search bar */
+            right: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 14px;
+            z-index: 1001;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
+        }
     </style>
 </head>
 <body>
@@ -72,11 +75,7 @@
 <div id="instructions-panel">
     <img id="instruction-image" src="https://i.imgur.com/BiCTsME.jpg" alt="Map Instructions">
 </div>
-<div id="search-container">
-    <input type="text" id="address-input" placeholder="Enter address to zoom">
-    <button id="search-button">Search</button>
-    <div id="search-results"></div>
-</div>
+<div id="search-container"></div>
 
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiYWFyb25pbmJyb29rbHluIiwiYSI6ImNtOGowMmZ0dzBjMDgycnB4eWdhZW9nZ2sifQ.Z70awiKsIraT8Mfh-T_iAg';
