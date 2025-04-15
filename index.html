@@ -8,11 +8,11 @@
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css" rel="stylesheet" />
     <style>
         body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 300px; } /* Adjust right margin for the info panel */
-        #info-panel {
+        #map { position: absolute; top: 0; bottom: 0; left: 320px; right: 0; } /* Adjust left margin for instructions */
+        #instructions-panel {
             position: absolute;
             top: 0;
-            right: 0;
+            left: 0;
             width: 300px;
             bottom: 0;
             background-color: #f8f8f8;
@@ -25,34 +25,36 @@
         #instruction-image {
             max-width: 100%;
             height: auto;
-            margin-bottom: 20px;
             border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
         }
         #search-container {
-            margin-bottom: 20px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000; /* Ensure it's above the map */
         }
         #address-input {
-            width: calc(100% - 60px);
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 14px;
         }
         #search-button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
+            display: none; /* Hide the button */
         }
         #search-results {
-            margin-top: 10px;
-            padding: 10px;
+            position: absolute;
+            top: 50px; /* Adjust as needed */
+            right: 10px;
+            background-color: white;
             border: 1px solid #ddd;
             border-radius: 4px;
-            background-color: white;
+            padding: 10px;
+            font-size: 14px;
+            z-index: 1001;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add a subtle shadow */
         }
         .mapboxgl-popup-content {
             font-family: Arial, sans-serif;
@@ -67,16 +69,13 @@
 </head>
 <body>
 <div id="map"></div>
-<div id="info-panel">
-    <h3>How to Use the Map</h3>
+<div id="instructions-panel">
     <img id="instruction-image" src="https://i.imgur.com/BiCTsME.jpg" alt="Map Instructions">
-
-    <div id="search-container">
-        <h3>Find Your Council Representative</h3>
-        <input type="text" id="address-input" placeholder="Enter your address">
-        <button id="search-button">Search</button>
-        <div id="search-results" style="display: none;"></div>
-    </div>
+</div>
+<div id="search-container">
+    <input type="text" id="address-input" placeholder="Enter address to zoom">
+    <button id="search-button">Search</button>
+    <div id="search-results"></div>
 </div>
 
 <script>
@@ -116,37 +115,41 @@
             popup.remove();
         });
 
-        document.getElementById('search-button').addEventListener('click', () => {
-            const address = document.getElementById('address-input').value;
-            if (address) {
-                geocodeAddress(address);
-            } else {
-                document.getElementById('search-results').style.display = 'none';
-            }
+        const geocoder = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            placeholder: 'Search address',
+            marker: false, // Do not add a default marker
         });
-    });
 
-    function geocodeAddress(address) {
-        // Replace with your Mapbox Geocoding API endpoint and access token
-        const geocodingApiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`;
+        document.getElementById('search-container').appendChild(geocoder.onAdd(map));
 
-        fetch(geocodingApiUrl)
-            .then(response => response.json())
-            .then(data => {
-                if (data.features && data.features.length > 0) {
-                    const [longitude, latitude] = data.features[0].center;
-                    findCouncilRepresentative(latitude, longitude);
-                } else {
-                    document.getElementById('search-results').innerHTML = '<p>Address not found.</p>';
-                    document.getElementById('search-results').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Error geocoding address:', error);
-                document.getElementById('search-results').innerHTML = '<p>Error finding address.</p>';
-                document.getElementById('search-results').style.display = 'block';
+        geocoder.on('result', ({ result }) => {
+            map.flyTo({
+                center: result.center,
+                zoom: 15 // Adjust zoom level as needed
             });
-    }
+            findCouncilRepresentative(result.center[1], result.center[0]); // Pass coordinates to find council info
+        });
+
+        // Get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    map.flyTo({
+                        center: [position.coords.longitude, position.coords.latitude],
+                        zoom: 13 // Adjust initial zoom level for user's location
+                    });
+                },
+                (error) => {
+                    console.error('Error getting user location:', error);
+                    // Optionally handle the error, e.g., display a message
+                }
+            );
+        } else {
+            console.log('Geolocation is not supported by this browser.');
+        }
+    });
 
     function findCouncilRepresentative(latitude, longitude) {
         const queryUrl = `https://api.mapbox.com/v4/aaroninbrooklyn.bklynlibrary-branches-0qfsv6/tilequery/${longitude},${latitude}.json?radius=100&limit=1`;
@@ -154,26 +157,28 @@
         fetch(queryUrl)
             .then(response => response.json())
             .then(data => {
+                const searchResultsDiv = document.getElementById('search-results');
                 if (data.features && data.features.length > 0) {
                     const props = data.features[0].properties;
                     const resultsHtml = `
-                        <h3>Your Council Representative:</h3>
+                        <h3>Council Information:</h3>
                         <p><strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}</p>
                         <p><strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}</p>
                         <p><strong>District Office Address:</strong> ${props["District Office Address"] || "N/A"}</p>
                         <p><strong>District Office Phone:</strong> ${props["District Office Phone"] || "N/A"}</p>
                     `;
-                    document.getElementById('search-results').innerHTML = resultsHtml;
-                    document.getElementById('search-results').style.display = 'block';
+                    searchResultsDiv.innerHTML = resultsHtml;
+                    searchResultsDiv.style.display = 'block';
                 } else {
-                    document.getElementById('search-results').innerHTML = '<p>Could not find council information for this location.</p>';
-                    document.getElementById('search-results').style.display = 'block';
+                    searchResultsDiv.innerHTML = '<p>Could not find council information for this location.</p>';
+                    searchResultsDiv.style.display = 'block';
                 }
             })
             .catch(error => {
                 console.error('Error querying council data:', error);
-                document.getElementById('search-results').innerHTML = '<p>Error finding council information.</p>';
-                document.getElementById('search-results').style.display = 'block';
+                const searchResultsDiv = document.getElementById('search-results');
+                searchResultsDiv.innerHTML = '<p>Error finding council information.</p>';
+                searchResultsDiv.style.display = 'block';
             });
     }
 </script>
