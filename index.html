@@ -2,13 +2,58 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>BPL Branch Hover Info</title>
+    <title>BPL Branch & Council Info</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css" rel="stylesheet" />
     <style>
         body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 300px; } /* Adjust right margin for the info panel */
+        #info-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            bottom: 0;
+            background-color: #f8f8f8;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        #instruction-image {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        #search-container {
+            margin-bottom: 20px;
+        }
+        #address-input {
+            width: calc(100% - 60px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        #search-button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #search-results {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
         .mapboxgl-popup-content {
             font-family: Arial, sans-serif;
             font-size: 13px;
@@ -22,6 +67,18 @@
 </head>
 <body>
 <div id="map"></div>
+<div id="info-panel">
+    <h3>How to Use the Map</h3>
+    <img id="instruction-image" src="https://i.imgur.com/BiCTsME.jpg" alt="Map Instructions">
+
+    <div id="search-container">
+        <h3>Find Your Council Representative</h3>
+        <input type="text" id="address-input" placeholder="Enter your address">
+        <button id="search-button">Search</button>
+        <div id="search-results" style="display: none;"></div>
+    </div>
+</div>
+
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiYWFyb25pbmJyb29rbHluIiwiYSI6ImNtOGowMmZ0dzBjMDgycnB4eWdhZW9nZ2sifQ.Z70awiKsIraT8Mfh-T_iAg';
 
@@ -39,24 +96,86 @@
 
     map.on('load', () => {
         map.on('mousemove', 'bklynlibrary-branches-0qfsv6', (e) => {
-            const feature = e.features[0];
-            const props = feature.properties;
+            if (e.features.length > 0) {
+                const feature = e.features[0];
+                const props = feature.properties;
 
-            const popupHtml = `
-                <strong>Branch:</strong> ${props["branch"] || "N/A"}<br/>
-                <strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}<br/>
-                <strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}<br/>
-                <strong>District Office Address:</strong> ${props["District Office Address"] || "N/A"}<br/>
-                <strong>District Office Phone:</strong> ${props["District Office Phone"] || "N/A"}<br/>
-            `;
+                const popupHtml = `
+                    <strong>Branch:</strong> ${props["branch"] || "N/A"}<br/>
+                    <strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}<br/>
+                    <strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}<br/>
+                    <strong>District Office Address:</strong> ${props["District Office Address"] || "N/A"}<br/>
+                    <strong>District Office Phone:</strong> ${props["District Office Phone"] || "N/A"}<br/>
+                `;
 
-            popup.setLngLat(e.lngLat).setHTML(popupHtml).addTo(map);
+                popup.setLngLat(e.lngLat).setHTML(popupHtml).addTo(map);
+            }
         });
 
         map.on('mouseleave', 'bklynlibrary-branches-0qfsv6', () => {
             popup.remove();
         });
+
+        document.getElementById('search-button').addEventListener('click', () => {
+            const address = document.getElementById('address-input').value;
+            if (address) {
+                geocodeAddress(address);
+            } else {
+                document.getElementById('search-results').style.display = 'none';
+            }
+        });
     });
+
+    function geocodeAddress(address) {
+        // Replace with your Mapbox Geocoding API endpoint and access token
+        const geocodingApiUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`;
+
+        fetch(geocodingApiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features && data.features.length > 0) {
+                    const [longitude, latitude] = data.features[0].center;
+                    findCouncilRepresentative(latitude, longitude);
+                } else {
+                    document.getElementById('search-results').innerHTML = '<p>Address not found.</p>';
+                    document.getElementById('search-results').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error geocoding address:', error);
+                document.getElementById('search-results').innerHTML = '<p>Error finding address.</p>';
+                document.getElementById('search-results').style.display = 'block';
+            });
+    }
+
+    function findCouncilRepresentative(latitude, longitude) {
+        const queryUrl = `https://api.mapbox.com/v4/aaroninbrooklyn.bklynlibrary-branches-0qfsv6/tilequery/${longitude},${latitude}.json?radius=100&limit=1`;
+
+        fetch(queryUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features && data.features.length > 0) {
+                    const props = data.features[0].properties;
+                    const resultsHtml = `
+                        <h3>Your Council Representative:</h3>
+                        <p><strong>Council District:</strong> ${props["CouncilDistrict"] || "N/A"}</p>
+                        <p><strong>Council Member:</strong> ${props["Council Member Name"] || "N/A"}</p>
+                        <p><strong>District Office Address:</strong> ${props["District Office Address"] || "N/A"}</p>
+                        <p><strong>District Office Phone:</strong> ${props["District Office Phone"] || "N/A"}</p>
+                    `;
+                    document.getElementById('search-results').innerHTML = resultsHtml;
+                    document.getElementById('search-results').style.display = 'block';
+                } else {
+                    document.getElementById('search-results').innerHTML = '<p>Could not find council information for this location.</p>';
+                    document.getElementById('search-results').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error querying council data:', error);
+                document.getElementById('search-results').innerHTML = '<p>Error finding council information.</p>';
+                document.getElementById('search-results').style.display = 'block';
+            });
+    }
 </script>
 </body>
 </html>
